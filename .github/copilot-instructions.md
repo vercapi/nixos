@@ -2,24 +2,26 @@
 
 ## Validation commands
 
-- `nix-instantiate --parse ./configuration.nix` — fastest syntax check.
-- `sudo nixos-rebuild dry-build -I nixos-config=$PWD/configuration.nix` — evaluate and build without activating the system.
-- `sudo nixos-rebuild test -I nixos-config=$PWD/configuration.nix` — build and activate temporarily for end-to-end validation.
-- `sudo nixos-rebuild switch -I nixos-config=$PWD/configuration.nix` — apply the configuration after review.
-- There is no repo-local lint script or unit/integration test runner. There is also no single-test entry point; validation is whole-configuration, so use `nix-instantiate --parse` first for narrow edits and `nixos-rebuild dry-build` for the full check.
+- `nix --extra-experimental-features 'nix-command flakes' flake show path:$PWD` — confirm the flake evaluates and exposes the expected outputs.
+- `nix --extra-experimental-features 'nix-command flakes' build --dry-run path:$PWD#nixosConfigurations.nixos.config.system.build.toplevel` — resolve the full system build without producing a result symlink.
+- `nix --extra-experimental-features 'nix-command flakes' build --no-link path:$PWD#nixosConfigurations.nixos.config.system.build.toplevel` — build the configured system without switching to it.
+- `sudo nixos-rebuild test --flake .#nixos` — build and activate temporarily for end-to-end validation.
+- `sudo nixos-rebuild switch --flake .#nixos` — apply the configuration after review.
+- There is no repo-local lint script or unit/integration test runner. There is also no single-test entry point; validation is whole-system, so use `nix flake show` for fast evaluation and `nix build`/`nixos-rebuild` for full verification.
 
 ## High-level architecture
 
-- This repo is centered on a single NixOS module: `configuration.nix`. `README.md` is currently just a placeholder.
-- `configuration.nix` is a plain module function (`{ config, lib, pkgs, ... }:`) that returns one top-level attrset. There is no flake, overlay tree, or module split yet.
-- The `imports = [ <nixos-wsl/modules> ];` line makes the configuration an extension of the upstream NixOS-WSL modules. WSL behavior is then set in the same file with `wsl.enable` and `wsl.defaultUser`.
-- A `let` binding defines a custom `copilot-cli` package by fetching `scarisey/copilot-cli-flake` from GitHub and instantiating it with `pkgs.callPackage`. That derived package is then added to `environment.systemPackages`.
-- System packages, fonts, shell defaults, and release/version state all live in the same module, so most changes are edits to different blocks of one file rather than coordination across multiple modules.
+- `flake.nix` is the repo entrypoint. It pins `nixpkgs`, `nixos-wsl`, and `copilot-cli`, then exposes a single host at `nixosConfigurations.nixos`.
+- The flake builds the system with `nixpkgs.lib.nixosSystem` and imports the upstream WSL module from `nixos-wsl.nixosModules.default`.
+- `hosts/nixos/default.nix` is the host entrypoint. It assembles the system from focused modules instead of defining everything inline.
+- The reusable settings live under `modules/`: WSL settings, packages, fonts, shell defaults, and release/state versioning are separated so future changes stay localized.
+- `modules/packages.nix` consumes the Copilot CLI from the flake input via `copilot-cli.packages.${pkgs.system}.default` rather than rebuilding it from an inline fetch.
 
 ## Key conventions
 
-- Keep changes declarative in `configuration.nix`; avoid introducing imperative setup steps unless the repo structure changes to support them.
-- Add packages through `environment.systemPackages = with pkgs; [ ... ];`. When a package needs custom fetch/build logic, bind it in `let` and reference the bound name in that package list.
-- Keep WSL-specific behavior near the `imports` and `wsl.*` settings instead of scattering it across unrelated sections.
+- Keep the repo flake-first: new system wiring belongs in `flake.nix`, while option definitions belong in host/modules under `hosts/` and `modules/`.
+- Add packages through `modules/packages.nix`. Prefer consuming flake inputs directly from `packages.${pkgs.system}` when an upstream flake already exposes the package.
+- Keep WSL-specific behavior in `modules/wsl.nix` rather than mixing it into package or shell modules.
+- Keep host composition in `hosts/nixos/default.nix`; add new focused modules instead of growing one large host file.
 - Preserve `system.stateVersion` unless the task is explicitly about a NixOS release migration.
 - This config already sets `nixpkgs.config.allowUnfree = true`; prefer normal package references over ad hoc workarounds for unfree packages.
