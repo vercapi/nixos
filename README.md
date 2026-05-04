@@ -13,4 +13,8 @@ Flake-based NixOS-WSL configuration.
 
 - `flake.nix` pins inputs and defines `nixosConfigurations.nixos`
 - `hosts/nixos/default.nix` is the host entrypoint
-- `modules/` contains the split configuration modules for WSL settings, packages, fonts, shell defaults, and system versioning
+- `modules/base.nix` contains shared system defaults like Nix settings, unfree allowance, shell defaults, and `system.stateVersion`
+- `modules/wsl.nix` contains WSL-specific behavior
+- `modules/development.nix` contains general development tooling
+- `modules/copilot.nix` contains Copilot-specific tooling and its Node.js runtime
+- `modules/emacs.nix` contains the Emacs-centric toolchain, dictionaries, Python, and fonts

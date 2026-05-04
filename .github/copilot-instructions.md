@@ -14,13 +14,15 @@
 - `flake.nix` is the repo entrypoint. It pins `nixpkgs`, `nixos-wsl`, and `copilot-cli`, then exposes a single host at `nixosConfigurations.nixos`.
 - The flake builds the system with `nixpkgs.lib.nixosSystem` and imports the upstream WSL module from `nixos-wsl.nixosModules.default`.
 - `hosts/nixos/default.nix` is the host entrypoint. It assembles the system from focused modules instead of defining everything inline.
-- The reusable settings live under `modules/`: WSL settings, packages, fonts, shell defaults, and release/state versioning are separated so future changes stay localized.
-- `modules/packages.nix` consumes the Copilot CLI from the flake input via `copilot-cli.packages.${pkgs.system}.default` rather than rebuilding it from an inline fetch.
+- The reusable settings live under `modules/` and are grouped by function: `base.nix`, `wsl.nix`, `development.nix`, `copilot.nix`, and `emacs.nix`.
+- `modules/copilot.nix` consumes the Copilot CLI from the flake input via `copilot-cli.packages.${pkgs.system}.default` rather than rebuilding it from an inline fetch.
+- `modules/emacs.nix` is intentionally broader than just the editor package: it also carries the supporting Python, dictionaries, and fonts used for that workflow.
 
 ## Key conventions
 
 - Keep the repo flake-first: new system wiring belongs in `flake.nix`, while option definitions belong in host/modules under `hosts/` and `modules/`.
-- Add packages through `modules/packages.nix`. Prefer consuming flake inputs directly from `packages.${pkgs.system}` when an upstream flake already exposes the package.
+- Group modules by user-facing function rather than by option type. Extend `development.nix`, `copilot.nix`, or `emacs.nix` before creating technical slices like `packages.nix` or `fonts.nix`.
+- Add packages to the functional module they support. Prefer consuming flake inputs directly from `packages.${pkgs.system}` when an upstream flake already exposes the package.
 - Keep WSL-specific behavior in `modules/wsl.nix` rather than mixing it into package or shell modules.
 - Keep host composition in `hosts/nixos/default.nix`; add new focused modules instead of growing one large host file.
 - Preserve `system.stateVersion` unless the task is explicitly about a NixOS release migration.

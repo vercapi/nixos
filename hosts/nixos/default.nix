@@ -1,9 +1,9 @@
 {
   imports = [
-    ../../modules/fonts.nix
-    ../../modules/packages.nix
-    ../../modules/shell.nix
-    ../../modules/system.nix
+    ../../modules/base.nix
+    ../../modules/copilot.nix
+    ../../modules/development.nix
+    ../../modules/emacs.nix
     ../../modules/wsl.nix
   ];
 }
