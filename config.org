@@ -5,10 +5,21 @@ This document is the canonical source for the full NixOS configuration.
 In literate style, we first explain each concern, then weave named code chunks
 into concrete files via Org Babel tangling.
 
+Functionally, this machine profile is organized around five outcomes:
+- a stable NixOS-on-WSL base,
+- reproducible host composition,
+- core development tooling,
+- Copilot CLI availability,
+- and an Emacs-first working environment.
+
 * Flake: dependency graph and system entrypoint
 
 The flake has three responsibilities: declare repository intent, pin inputs, and
 define outputs for the =nixos= host.
+
+From a functional perspective, this section is the contract that turns this
+repository into a reproducible workstation definition: same inputs, same module
+graph, same host outcome.
 
 ** Flake description chunk
 
@@ -115,6 +126,9 @@ The final file is woven by assembling description, inputs, and outputs in order.
 The host file intentionally contains only module composition. This keeps system
 wiring separate from option definitions.
 
+Functionally, this is the capability switchboard: it decides which feature
+modules are active for the =nixos= host without embedding option logic here.
+
 #+name: host-imports
 #+begin_src nix :tangle no
 imports = [
@@ -140,6 +154,9 @@ and then compose the full module body.
 ** Base module: system defaults
 
 This module establishes shared system policy and shell defaults.
+
+Functionally, it defines machine-wide baseline behavior that every workflow
+depends on, regardless of editor or tool preference.
 
 *** Base module arguments
 
@@ -211,6 +228,9 @@ system.stateVersion = "25.05";
 
 WSL-specific behavior remains isolated from generic Linux configuration.
 
+Functionally, this module makes the system behave correctly as a WSL guest and
+ensures the expected default user context when opening the environment.
+
 *** WSL module functional chunks
 
 Enable the WSL integration module itself.
@@ -245,6 +265,9 @@ wsl.defaultUser = "nixos";
 
 This module contains broadly useful development tools that are not tied to
 Emacs or Copilot specifically.
+
+Functionally, it provides the minimum cross-workflow tooling needed for day-to-day
+development tasks.
 
 *** Development module arguments
 
@@ -289,6 +312,9 @@ environment.systemPackages = with pkgs; [
 ** Copilot module: CLI integration
 
 This module wires the Copilot CLI flake package and the Node runtime it needs.
+
+Functionally, this makes Copilot CLI consistently available on the system with
+its runtime requirements satisfied by the same declarative configuration.
 
 *** Copilot module arguments
 
@@ -342,6 +368,10 @@ environment.systemPackages = [
 
 This module carries the editor plus native dependencies needed by an Emacs-first
 development workflow, including =vterm= support, dictionaries, and fonts.
+
+Functionally, this section optimizes the machine for an Emacs-centric workflow:
+editing, terminal use, spell-checking, and language-tool integration all work
+out of the box after activation.
 
 *** Emacs module arguments
 

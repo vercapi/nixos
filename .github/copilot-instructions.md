@@ -23,11 +23,15 @@
 - `config.org` is the single source of truth for system configuration. Make all configuration changes in `config.org` only.
 - Never edit `flake.nix`, `hosts/**/*.nix`, or `modules/*.nix` directly; those files are generated via tangling from `config.org`.
 - After changing `config.org`, regenerate the Nix files with `./scripts/tangle-config.sh` before running validation/build commands.
-- Keep the repo flake-first: new system wiring belongs in `flake.nix`, while option definitions belong in host/modules under `hosts/` and `modules/`.
+- `config.org` should follow literate-programming style: explain each section in prose, and document both technical wiring and functional/user-facing intent.
+- When applying a requested config change, preserve the request context in `config.org` prose near the affected chunks (what changed, why it changed, and the functional outcome), not only in code blocks.
+- Split Babel chunks by functionality (small named chunks for inputs, package groups, toggles, etc.), and assemble outputs directly in the final `:tangle` blocks rather than through extra `*-file` wrapper chunks.
+- Keep generated file formatting script-driven: `./scripts/tangle-config.sh` includes post-processing cleanup; do not hand-format generated `.nix` files.
+- Keep the repo conceptually flake-first: place flake wiring in the Flake section of `config.org`, which tangles to `flake.nix`.
 - Group modules by user-facing function rather than by option type. Extend `development.nix`, `copilot.nix`, or `emacs.nix` before creating technical slices like `packages.nix` or `fonts.nix`.
 - Add packages to the functional module they support. Prefer consuming flake inputs directly from `packages.${pkgs.system}` when an upstream flake already exposes the package.
 - Emacs packages themselves are expected to be managed inside Emacs; `modules/emacs.nix` should provide editor support tooling and native dependencies rather than Nix-managed Emacs extensions unless explicitly requested.
 - Keep WSL-specific behavior in `modules/wsl.nix` rather than mixing it into package or shell modules.
-- Keep host composition in `hosts/nixos/default.nix`; add new focused modules instead of growing one large host file.
+- Keep host composition in the Host section of `config.org` (tangled to `hosts/nixos/default.nix`); add new focused modules instead of growing one large host file.
 - Preserve `system.stateVersion` unless the task is explicitly about a NixOS release migration.
 - This config already sets `nixpkgs.config.allowUnfree = true`; prefer normal package references over ad hoc workarounds for unfree packages.
