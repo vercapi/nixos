@@ -21,6 +21,27 @@ From a functional perspective, this section is the contract that turns this
 repository into a reproducible workstation definition: same inputs, same module
 graph, same host outcome.
 
+** Acceptance criteria (Gherkin)
+
+These scenarios define what must hold true for flake-level behavior.
+
+#+begin_example
+Scenario: Flake exposes the nixos host configuration
+  Given the repository is in a tangled state
+  When I run "nix --extra-experimental-features 'nix-command flakes' flake show path:$PWD"
+  Then the output includes "nixosConfigurations"
+  And the output includes "nixos"
+
+Scenario: Flake resolves the system toplevel derivation
+  Given the repository is in a tangled state
+  When I run "nix --extra-experimental-features 'nix-command flakes' build --dry-run path:$PWD#nixosConfigurations.nixos.config.system.build.toplevel"
+  Then the command exits successfully
+#+end_example
+
+Verification mapping:
+- Scenario "Flake exposes the nixos host configuration" -> `nix ... flake show path:$PWD`
+- Scenario "Flake resolves the system toplevel derivation" -> `nix ... build --dry-run path:$PWD#nixosConfigurations.nixos.config.system.build.toplevel`
+
 ** Flake description chunk
 
 This short chunk states what this flake represents.
@@ -129,6 +150,30 @@ wiring separate from option definitions.
 Functionally, this is the capability switchboard: it decides which feature
 modules are active for the =nixos= host without embedding option logic here.
 
+** Acceptance criteria (Gherkin)
+
+These scenarios verify host composition behavior.
+
+#+begin_example
+Scenario: Host imports the focused functional modules
+  Given the tangled file "hosts/nixos/default.nix"
+  When I inspect its imports list
+  Then it includes "modules/base.nix"
+  And it includes "modules/copilot.nix"
+  And it includes "modules/development.nix"
+  And it includes "modules/emacs.nix"
+  And it includes "modules/wsl.nix"
+
+Scenario: Host composition remains buildable
+  Given the repository is in a tangled state
+  When I run "nix --extra-experimental-features 'nix-command flakes' build --dry-run path:$PWD#nixosConfigurations.nixos.config.system.build.toplevel"
+  Then the command exits successfully
+#+end_example
+
+Verification mapping:
+- Scenario "Host imports the focused functional modules" -> inspect `hosts/nixos/default.nix` imports
+- Scenario "Host composition remains buildable" -> `nix ... build --dry-run path:$PWD#nixosConfigurations.nixos.config.system.build.toplevel`
+
 #+name: host-imports
 #+begin_src nix :tangle no
 imports = [
@@ -157,6 +202,30 @@ This module establishes shared system policy and shell defaults.
 
 Functionally, it defines machine-wide baseline behavior that every workflow
 depends on, regardless of editor or tool preference.
+
+*** Acceptance criteria (Gherkin)
+
+These scenarios define baseline system policy expectations.
+
+#+begin_example
+Scenario: Fish is the default shell with Bash fallback available
+  Given the tangled file "modules/base.nix"
+  When I inspect shell-related settings
+  Then "users.defaultUserShell = pkgs.fish;" is present
+  And "programs.fish.enable = true;" is present
+  And "bash" appears in "environment.systemPackages"
+
+Scenario: Base policy enables required Nix and compatibility settings
+  Given the tangled file "modules/base.nix"
+  When I inspect policy settings
+  Then "nix.settings.experimental-features" includes "nix-command" and "flakes"
+  And "nixpkgs.config.allowUnfree = true;" is present
+  And "system.stateVersion = \"25.05\";" is present
+#+end_example
+
+Verification mapping:
+- Scenario "Fish is the default shell with Bash fallback available" -> inspect `modules/base.nix`
+- Scenario "Base policy enables required Nix and compatibility settings" -> inspect `modules/base.nix`
 
 *** Base module arguments
 
@@ -235,6 +304,26 @@ WSL-specific behavior remains isolated from generic Linux configuration.
 Functionally, this module makes the system behave correctly as a WSL guest and
 ensures the expected default user context when opening the environment.
 
+*** Acceptance criteria (Gherkin)
+
+These scenarios define required WSL behavior.
+
+#+begin_example
+Scenario: WSL integration is enabled
+  Given the tangled file "modules/wsl.nix"
+  When I inspect WSL options
+  Then "wsl.enable = true;" is present
+
+Scenario: WSL default user is configured
+  Given the tangled file "modules/wsl.nix"
+  When I inspect WSL options
+  Then "wsl.defaultUser = \"nixos\";" is present
+#+end_example
+
+Verification mapping:
+- Scenario "WSL integration is enabled" -> inspect `modules/wsl.nix`
+- Scenario "WSL default user is configured" -> inspect `modules/wsl.nix`
+
 *** WSL module functional chunks
 
 Enable the WSL integration module itself.
@@ -272,6 +361,20 @@ Emacs or Copilot specifically.
 
 Functionally, it provides the minimum cross-workflow tooling needed for day-to-day
 development tasks.
+
+*** Acceptance criteria (Gherkin)
+
+These scenarios define baseline development tooling behavior.
+
+#+begin_example
+Scenario: Git is part of the baseline developer toolchain
+  Given the tangled file "modules/development.nix"
+  When I inspect "environment.systemPackages"
+  Then it includes "git"
+#+end_example
+
+Verification mapping:
+- Scenario "Git is part of the baseline developer toolchain" -> inspect `modules/development.nix`
 
 *** Development module arguments
 
@@ -319,6 +422,26 @@ This module wires the Copilot CLI flake package and the Node runtime it needs.
 
 Functionally, this makes Copilot CLI consistently available on the system with
 its runtime requirements satisfied by the same declarative configuration.
+
+*** Acceptance criteria (Gherkin)
+
+These scenarios define Copilot CLI availability behavior.
+
+#+begin_example
+Scenario: Copilot CLI package is sourced from the flake input
+  Given the tangled file "modules/copilot.nix"
+  When I inspect "environment.systemPackages"
+  Then it includes "copilot-cli.packages.${pkgs.system}.default"
+
+Scenario: Node.js runtime required by Copilot is installed
+  Given the tangled file "modules/copilot.nix"
+  When I inspect "environment.systemPackages"
+  Then it includes "pkgs.nodejs_24"
+#+end_example
+
+Verification mapping:
+- Scenario "Copilot CLI package is sourced from the flake input" -> inspect `modules/copilot.nix`
+- Scenario "Node.js runtime required by Copilot is installed" -> inspect `modules/copilot.nix`
 
 *** Copilot module arguments
 
@@ -376,6 +499,35 @@ development workflow, including =vterm= support, dictionaries, and fonts.
 Functionally, this section optimizes the machine for an Emacs-centric workflow:
 editing, terminal use, spell-checking, and language-tool integration all work
 out of the box after activation.
+
+*** Acceptance criteria (Gherkin)
+
+These scenarios define Emacs-first workstation behavior.
+
+#+begin_example
+Scenario: Emacs toolchain includes editor and native build dependencies
+  Given the tangled file "modules/emacs.nix"
+  When I inspect "environment.systemPackages"
+  Then it includes "emacs"
+  And it includes "cmake", "gcc", "libtool", "gnumake", and "pkg-config"
+
+Scenario: Emacs workflow includes spell-check and terminal integration support
+  Given the tangled file "modules/emacs.nix"
+  When I inspect "environment.systemPackages"
+  Then it includes "hunspell", "hunspellDicts.en_US", and "hunspellDicts.nl_nl"
+  And it includes "libvterm"
+  And it includes "python3Full"
+
+Scenario: Emacs workflow provides configured fonts
+  Given the tangled file "modules/emacs.nix"
+  When I inspect "fonts.packages"
+  Then it includes "proggyfonts"
+#+end_example
+
+Verification mapping:
+- Scenario "Emacs toolchain includes editor and native build dependencies" -> inspect `modules/emacs.nix`
+- Scenario "Emacs workflow includes spell-check and terminal integration support" -> inspect `modules/emacs.nix`
+- Scenario "Emacs workflow provides configured fonts" -> inspect `modules/emacs.nix`
 
 *** Emacs module arguments
 
