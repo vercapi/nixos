@@ -17,4 +17,4 @@ Flake-based NixOS-WSL configuration.
 - `modules/wsl.nix` contains WSL-specific behavior
 - `modules/development.nix` contains general development tooling
 - `modules/copilot.nix` contains Copilot-specific tooling and its Node.js runtime
-- `modules/emacs.nix` contains the Emacs-centric toolchain, dictionaries, Python, and fonts
+- `modules/emacs.nix` contains the Emacs-centric toolchain, including the native dependencies needed for Emacs-managed `vterm`, dictionaries, Python, and fonts
