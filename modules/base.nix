@@ -11,7 +11,7 @@
   environment.systemPackages = with pkgs; [
     fish
   ];
-  
+
   programs.zsh.enable = true;
   users.defaultUserShell = pkgs.zsh;
 
