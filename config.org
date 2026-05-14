@@ -184,16 +184,20 @@ Allow unfree packages globally for this machine profile.
 nixpkgs.config.allowUnfree = true;
 #+end_src
 
-Define the default shell tooling and login shell.
+Define the default shell policy for the machine.
+
+Per request, Fish is the primary login shell, while Bash remains installed as a
+stable fallback shell.
 
 #+name: module-base-shell
 #+begin_src nix :tangle no
 environment.systemPackages = with pkgs; [
+  bash
   fish
 ];
 
-programs.zsh.enable = true;
-users.defaultUserShell = pkgs.zsh;
+programs.fish.enable = true;
+users.defaultUserShell = pkgs.fish;
 #+end_src
 
 Pin stateVersion to preserve migration semantics across upgrades.
