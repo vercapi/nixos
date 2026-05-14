@@ -1,16 +1,21 @@
 { pkgs, ... }:
+
 {
   environment.systemPackages = with pkgs; [
     emacs
+  
     cmake
     gcc
+    libtool
+    gnumake
+    pkg-config
+  
     hunspell
     hunspellDicts.en_US
     hunspellDicts.nl_nl
-    libtool
+  
     libvterm
-    gnumake
-    pkg-config
+  
     python3Full
   ];
 

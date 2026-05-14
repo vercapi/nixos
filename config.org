@@ -1,130 +1,437 @@
-#+TITLE: NixOS Configuration
-#+PROPERTY: header-args:nix :comments no :mkdirp yes
+#+TITLE: NixOS Literate Configuration
+#+PROPERTY: header-args:nix :comments no :mkdirp yes :noweb yes
 
-* flake
+This document is the canonical source for the full NixOS configuration.
+In literate style, we first explain each concern, then weave named code chunks
+into concrete files via Org Babel tangling.
+
+* Flake: dependency graph and system entrypoint
+
+The flake has three responsibilities: declare repository intent, pin inputs, and
+define outputs for the =nixos= host.
+
+** Flake description chunk
+
+This short chunk states what this flake represents.
+
+#+name: flake-description
+#+begin_src nix :tangle no
+description = "NixOS WSL configuration";
+#+end_src
+
+** Flake input chunks
+
+We split each upstream input into its own chunk so each dependency can be read
+and changed independently.
+
+#+name: flake-input-nixpkgs
+#+begin_src nix :tangle no
+nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+#+end_src
+
+#+name: flake-input-nixos-wsl
+#+begin_src nix :tangle no
+nixos-wsl = {
+  url = "github:nix-community/NixOS-WSL";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+#+end_src
+
+#+name: flake-input-copilot-cli
+#+begin_src nix :tangle no
+copilot-cli = {
+  url = "github:scarisey/copilot-cli-flake";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+#+end_src
+
+The enclosing input set is woven from the individual input chunks.
+
+#+name: flake-inputs
+#+begin_src nix :tangle no
+inputs = {
+  <<flake-input-nixpkgs>>
+
+  <<flake-input-nixos-wsl>>
+
+  <<flake-input-copilot-cli>>
+};
+#+end_src
+
+** Flake output chunks
+
+The output layer is split so host wiring can be understood separately from flake
+plumbing.
+
+#+name: flake-output-special-args
+#+begin_src nix :tangle no
+specialArgs = {
+  inherit inputs copilot-cli;
+};
+#+end_src
+
+#+name: flake-output-modules
+#+begin_src nix :tangle no
+modules = [
+  nixos-wsl.nixosModules.default
+  ./hosts/nixos
+];
+#+end_src
+
+#+name: flake-output-host
+#+begin_src nix :tangle no
+nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+  system = "x86_64-linux";
+  <<flake-output-special-args>>
+  <<flake-output-modules>>
+};
+#+end_src
+
+#+name: flake-outputs
+#+begin_src nix :tangle no
+outputs =
+  inputs@{ nixpkgs, nixos-wsl, copilot-cli, ... }:
+  {
+    <<flake-output-host>>
+  };
+#+end_src
+
+** Tangled flake file
+
+The final file is woven by assembling description, inputs, and outputs in order.
+
 #+begin_src nix :tangle flake.nix
 {
-  description = "NixOS WSL configuration";
+  <<flake-description>>
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+  <<flake-inputs>>
 
-    nixos-wsl = {
-      url = "github:nix-community/NixOS-WSL";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    copilot-cli = {
-      url = "github:scarisey/copilot-cli-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
-
-  outputs =
-    inputs@{ nixpkgs, nixos-wsl, copilot-cli, ... }:
-    {
-      nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = {
-          inherit inputs copilot-cli;
-        };
-        modules = [
-          nixos-wsl.nixosModules.default
-          ./hosts/nixos
-        ];
-      };
-    };
+  <<flake-outputs>>
 }
 #+end_src
 
-* host
+* Host: module composition
+
+The host file intentionally contains only module composition. This keeps system
+wiring separate from option definitions.
+
+#+name: host-imports
+#+begin_src nix :tangle no
+imports = [
+  ../../modules/base.nix
+  ../../modules/copilot.nix
+  ../../modules/development.nix
+  ../../modules/emacs.nix
+  ../../modules/wsl.nix
+];
+#+end_src
+
 #+begin_src nix :tangle hosts/nixos/default.nix
 {
-  imports = [
-    ../../modules/base.nix
-    ../../modules/copilot.nix
-    ../../modules/development.nix
-    ../../modules/emacs.nix
-    ../../modules/wsl.nix
-  ];
+  <<host-imports>>
 }
 #+end_src
 
-* modules
-** base
+* Modules: functional option groups
+
+Each module is decomposed into functional chunks. We describe each concern first
+and then compose the full module body.
+
+** Base module: system defaults
+
+This module establishes shared system policy and shell defaults.
+
+*** Base module arguments
+
+#+name: module-base-args
+#+begin_src nix :tangle no
+{ pkgs, ... }:
+#+end_src
+
+*** Base module functional chunks
+
+Enable modern Nix command behavior needed by this flake workflow.
+
+#+name: module-base-nix-features
+#+begin_src nix :tangle no
+nix.settings.experimental-features = [
+  "nix-command"
+  "flakes"
+];
+#+end_src
+
+Allow unfree packages globally for this machine profile.
+
+#+name: module-base-unfree
+#+begin_src nix :tangle no
+nixpkgs.config.allowUnfree = true;
+#+end_src
+
+Define the default shell tooling and login shell.
+
+#+name: module-base-shell
+#+begin_src nix :tangle no
+environment.systemPackages = with pkgs; [
+  fish
+];
+
+programs.zsh.enable = true;
+users.defaultUserShell = pkgs.zsh;
+#+end_src
+
+Pin stateVersion to preserve migration semantics across upgrades.
+
+#+name: module-base-state-version
+#+begin_src nix :tangle no
+system.stateVersion = "25.05";
+#+end_src
+
+*** Base module assembly
+
+#+name: module-base-body
+#+begin_src nix :tangle no
+{
+  <<module-base-nix-features>>
+
+  <<module-base-unfree>>
+
+  <<module-base-shell>>
+
+  <<module-base-state-version>>
+}
+#+end_src
+
 #+begin_src nix :tangle modules/base.nix
-{ pkgs, ... }:
+<<module-base-args>>
 
+<<module-base-body>>
+#+end_src
+
+** WSL module: runtime environment toggles
+
+WSL-specific behavior remains isolated from generic Linux configuration.
+
+*** WSL module functional chunks
+
+Enable the WSL integration module itself.
+
+#+name: module-wsl-enable
+#+begin_src nix :tangle no
+wsl.enable = true;
+#+end_src
+
+Define the login account to use inside the WSL environment.
+
+#+name: module-wsl-default-user
+#+begin_src nix :tangle no
+wsl.defaultUser = "nixos";
+#+end_src
+
+*** WSL module assembly
+
+#+name: module-wsl-body
+#+begin_src nix :tangle no
 {
-  nix.settings.experimental-features = [
-    "nix-command"
-    "flakes"
-  ];
-
-  nixpkgs.config.allowUnfree = true;
-
-  environment.systemPackages = with pkgs; [
-    fish
-  ];
-
-  programs.zsh.enable = true;
-  users.defaultUserShell = pkgs.zsh;
-
-  system.stateVersion = "25.05";
+  <<module-wsl-enable>>
+  <<module-wsl-default-user>>
 }
 #+end_src
 
-** wsl
 #+begin_src nix :tangle modules/wsl.nix
+<<module-wsl-body>>
+#+end_src
+
+** Development module: baseline developer tooling
+
+This module contains broadly useful development tools that are not tied to
+Emacs or Copilot specifically.
+
+*** Development module arguments
+
+#+name: module-development-args
+#+begin_src nix :tangle no
+{ pkgs, ... }:
+#+end_src
+
+*** Development module functional chunks
+
+Start with version-control tooling as the baseline developer dependency.
+
+#+name: module-development-vcs
+#+begin_src nix :tangle no
+git
+#+end_src
+
+Compose the system package set from the functional package groups.
+
+#+name: module-development-packages
+#+begin_src nix :tangle no
+environment.systemPackages = with pkgs; [
+  <<module-development-vcs>>
+];
+#+end_src
+
+*** Development module assembly
+
+#+name: module-development-body
+#+begin_src nix :tangle no
 {
-  wsl.enable = true;
-  wsl.defaultUser = "nixos";
+  <<module-development-packages>>
 }
 #+end_src
 
-** development
 #+begin_src nix :tangle modules/development.nix
-{ pkgs, ... }:
+<<module-development-args>>
 
-{
-  environment.systemPackages = with pkgs; [
-    git
-  ];
-}
+<<module-development-body>>
 #+end_src
 
-** copilot
-#+begin_src nix :tangle modules/copilot.nix
+** Copilot module: CLI integration
+
+This module wires the Copilot CLI flake package and the Node runtime it needs.
+
+*** Copilot module arguments
+
+#+name: module-copilot-args
+#+begin_src nix :tangle no
 { pkgs, copilot-cli, ... }:
+#+end_src
 
+*** Copilot module functional chunks
+
+Pin the Node runtime used by the CLI package.
+
+#+name: module-copilot-node-runtime
+#+begin_src nix :tangle no
+pkgs.nodejs_24
+#+end_src
+
+Reference the Copilot CLI package exported by the flake input.
+
+#+name: module-copilot-cli-package
+#+begin_src nix :tangle no
+copilot-cli.packages.${pkgs.system}.default
+#+end_src
+
+Combine runtime and CLI package into the final package declaration.
+
+#+name: module-copilot-packages
+#+begin_src nix :tangle no
+environment.systemPackages = [
+  <<module-copilot-node-runtime>>
+  <<module-copilot-cli-package>>
+];
+#+end_src
+
+*** Copilot module assembly
+
+#+name: module-copilot-body
+#+begin_src nix :tangle no
 {
-  environment.systemPackages = [
-    pkgs.nodejs_24
-    copilot-cli.packages.${pkgs.system}.default
-  ];
+  <<module-copilot-packages>>
 }
 #+end_src
 
-** emacs
-#+begin_src nix :tangle modules/emacs.nix
-{ pkgs, ... }:
-{
-  environment.systemPackages = with pkgs; [
-    emacs
-    cmake
-    gcc
-    hunspell
-    hunspellDicts.en_US
-    hunspellDicts.nl_nl
-    libtool
-    libvterm
-    gnumake
-    pkg-config
-    python3Full
-  ];
+#+begin_src nix :tangle modules/copilot.nix
+<<module-copilot-args>>
 
-  fonts.packages = with pkgs; [
-    proggyfonts
-  ];
+<<module-copilot-body>>
+#+end_src
+
+** Emacs module: editor support stack
+
+This module carries the editor plus native dependencies needed by an Emacs-first
+development workflow, including =vterm= support, dictionaries, and fonts.
+
+*** Emacs module arguments
+
+#+name: module-emacs-args
+#+begin_src nix :tangle no
+{ pkgs, ... }:
+#+end_src
+
+*** Emacs module functional chunks
+
+Declare the editor package itself.
+
+#+name: module-emacs-pkg-editor
+#+begin_src nix :tangle no
+emacs
+#+end_src
+
+Provide native build tools commonly required by Emacs packages with compiled components.
+
+#+name: module-emacs-pkg-build-tools
+#+begin_src nix :tangle no
+cmake
+gcc
+libtool
+gnumake
+pkg-config
+#+end_src
+
+Add spell-check tooling and dictionaries for writing/editing workflows.
+
+#+name: module-emacs-pkg-spellcheck
+#+begin_src nix :tangle no
+hunspell
+hunspellDicts.en_US
+hunspellDicts.nl_nl
+#+end_src
+
+Include terminal integration support for Emacs =vterm=.
+
+#+name: module-emacs-pkg-vterm
+#+begin_src nix :tangle no
+libvterm
+#+end_src
+
+Provide Python runtime support used by editor tooling.
+
+#+name: module-emacs-pkg-python
+#+begin_src nix :tangle no
+python3Full
+#+end_src
+
+Assemble the full package list from those functional groups.
+
+#+name: module-emacs-toolchain
+#+begin_src nix :tangle no
+environment.systemPackages = with pkgs; [
+  <<module-emacs-pkg-editor>>
+
+  <<module-emacs-pkg-build-tools>>
+
+  <<module-emacs-pkg-spellcheck>>
+
+  <<module-emacs-pkg-vterm>>
+
+  <<module-emacs-pkg-python>>
+];
+#+end_src
+
+Fonts are managed separately from toolchain packages for clarity.
+
+#+name: module-emacs-fonts
+#+begin_src nix :tangle no
+fonts.packages = with pkgs; [
+  proggyfonts
+];
+#+end_src
+
+*** Emacs module assembly
+
+#+name: module-emacs-body
+#+begin_src nix :tangle no
+{
+  <<module-emacs-toolchain>>
+
+  <<module-emacs-fonts>>
 }
+#+end_src
+
+#+begin_src nix :tangle modules/emacs.nix
+<<module-emacs-args>>
+
+<<module-emacs-body>>
 #+end_src
