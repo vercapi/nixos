@@ -1,0 +1,130 @@
+#+TITLE: NixOS Configuration
+#+PROPERTY: header-args:nix :comments no :mkdirp yes
+
+* flake
+#+begin_src nix :tangle flake.nix
+{
+  description = "NixOS WSL configuration";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+
+    nixos-wsl = {
+      url = "github:nix-community/NixOS-WSL";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    copilot-cli = {
+      url = "github:scarisey/copilot-cli-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs =
+    inputs@{ nixpkgs, nixos-wsl, copilot-cli, ... }:
+    {
+      nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = {
+          inherit inputs copilot-cli;
+        };
+        modules = [
+          nixos-wsl.nixosModules.default
+          ./hosts/nixos
+        ];
+      };
+    };
+}
+#+end_src
+
+* host
+#+begin_src nix :tangle hosts/nixos/default.nix
+{
+  imports = [
+    ../../modules/base.nix
+    ../../modules/copilot.nix
+    ../../modules/development.nix
+    ../../modules/emacs.nix
+    ../../modules/wsl.nix
+  ];
+}
+#+end_src
+
+* modules
+** base
+#+begin_src nix :tangle modules/base.nix
+{ pkgs, ... }:
+
+{
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
+
+  nixpkgs.config.allowUnfree = true;
+
+  environment.systemPackages = with pkgs; [
+    fish
+  ];
+
+  programs.zsh.enable = true;
+  users.defaultUserShell = pkgs.zsh;
+
+  system.stateVersion = "25.05";
+}
+#+end_src
+
+** wsl
+#+begin_src nix :tangle modules/wsl.nix
+{
+  wsl.enable = true;
+  wsl.defaultUser = "nixos";
+}
+#+end_src
+
+** development
+#+begin_src nix :tangle modules/development.nix
+{ pkgs, ... }:
+
+{
+  environment.systemPackages = with pkgs; [
+    git
+  ];
+}
+#+end_src
+
+** copilot
+#+begin_src nix :tangle modules/copilot.nix
+{ pkgs, copilot-cli, ... }:
+
+{
+  environment.systemPackages = [
+    pkgs.nodejs_24
+    copilot-cli.packages.${pkgs.system}.default
+  ];
+}
+#+end_src
+
+** emacs
+#+begin_src nix :tangle modules/emacs.nix
+{ pkgs, ... }:
+{
+  environment.systemPackages = with pkgs; [
+    emacs
+    cmake
+    gcc
+    hunspell
+    hunspellDicts.en_US
+    hunspellDicts.nl_nl
+    libtool
+    libvterm
+    gnumake
+    pkg-config
+    python3Full
+  ];
+
+  fonts.packages = with pkgs; [
+    proggyfonts
+  ];
+}
+#+end_src

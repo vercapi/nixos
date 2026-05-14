@@ -20,6 +20,9 @@
 
 ## Key conventions
 
+- `config.org` is the single source of truth for system configuration. Make all configuration changes in `config.org` only.
+- Never edit `flake.nix`, `hosts/**/*.nix`, or `modules/*.nix` directly; those files are generated via tangling from `config.org`.
+- After changing `config.org`, regenerate the Nix files with `./scripts/tangle-config.sh` before running validation/build commands.
 - Keep the repo flake-first: new system wiring belongs in `flake.nix`, while option definitions belong in host/modules under `hosts/` and `modules/`.
 - Group modules by user-facing function rather than by option type. Extend `development.nix`, `copilot.nix`, or `emacs.nix` before creating technical slices like `packages.nix` or `fonts.nix`.
 - Add packages to the functional module they support. Prefer consuming flake inputs directly from `packages.${pkgs.system}` when an upstream flake already exposes the package.
