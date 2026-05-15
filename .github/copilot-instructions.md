@@ -25,8 +25,12 @@
 - After changing `config.org`, regenerate the Nix files with `./scripts/tangle-config.sh` before running validation/build commands.
 - `config.org` should follow literate-programming style: explain each section in prose, and document both technical wiring and functional/user-facing intent.
 - When applying a requested config change, preserve the request context in `config.org` prose near the affected chunks (what changed, why it changed, and the functional outcome), not only in code blocks.
-- Every behavior-affecting snippet in `config.org` must include a nearby `Acceptance criteria (Gherkin)` subheader with `Given/When/Then` scenarios.
+- Every behavior-affecting snippet in `config.org` must include a nearby subheader tagged `:ACCEPTANCE_CRITERIA:` with `Given/When/Then` scenarios.
+- Heading classification labels (for example, functionality or acceptance criteria) must be represented as Org tags, not literal heading text prefixes.
+- Use uppercase Org tags only.
+- Keep Org headings in standard syntax; do not use `=` inline markup in heading text.
 - Do not add Gherkin to snippets that are only structural/tangling scaffolding (assembly wrappers, args-only snippets, and final `:tangle` weave blocks).
+- Pure assembly/tangling module headers must be tagged `:TANGLE:`.
 - Gherkin scenarios must focus on end-result system behavior (runtime/system-state outcomes), not on tangling steps or generated file inspection.
 - Gherkin scenarios may be multiple per snippet when behaviors are distinct; keep wording specific and testable.
 - Each snippet-level Gherkin section must include a concise verification mapping to executable checks so scenarios can be converted into generated tests.
