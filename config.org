@@ -26,6 +26,7 @@ Behavior-affecting snippets covered with Gherkin in this document:
 - `module-base-nix-features`
 - `module-base-unfree`
 - `module-base-shell`
+- `module-base-auto-upgrade`
 - `module-base-state-version`
 - `module-wsl-enable`
 - `module-wsl-default-user`
@@ -309,6 +310,50 @@ Scenario: Fish is the default shell and Bash remains available
 Verification mapping:
 - Scenario "Fish is the default shell and Bash remains available" -> `sudo nixos-rebuild test --flake .#nixos` + shell/runtime checks
 
+Enable unattended system upgrades and prefer rolling package refreshes.
+
+Per request, this machine should update itself automatically and track newer
+package revisions over time. To preserve local host behavior while still
+getting rolling-style package updates, auto-upgrade rebuilds from this local
+flake path and refreshes the =nixpkgs= input during each upgrade run.
+
+#+name: module-base-auto-upgrade
+#+begin_src nix :tangle no
+system.autoUpgrade = {
+  enable = true;
+  dates = "daily";
+  randomizedDelaySec = "45min";
+  flake = "/home/nixos/nixos";
+  flags = [
+    "--update-input"
+    "nixpkgs"
+  ];
+  allowReboot = false;
+};
+#+end_src
+
+**** Acceptance criteria (Gherkin) for =module-base-auto-upgrade=
+
+#+begin_example
+Scenario: Auto-upgrade is enabled on a daily schedule without forced reboot
+  Given the host configuration is evaluable
+  When I evaluate auto-upgrade settings
+  Then "system.autoUpgrade.enable" equals true
+  And "system.autoUpgrade.dates" equals "daily"
+  And "system.autoUpgrade.allowReboot" equals false
+
+Scenario: Auto-upgrade refreshes nixpkgs from the local flake path
+  Given the host configuration is evaluable
+  When I evaluate the auto-upgrade flake source and flags
+  Then "system.autoUpgrade.flake" equals "/home/nixos/nixos"
+  And "system.autoUpgrade.flags" includes "--update-input"
+  And "system.autoUpgrade.flags" includes "nixpkgs"
+#+end_example
+
+Verification mapping:
+- Scenario "Auto-upgrade is enabled on a daily schedule without forced reboot" -> `nix eval --json path:$PWD#nixosConfigurations.nixos.config.system.autoUpgrade.enable` + `nix eval --raw path:$PWD#nixosConfigurations.nixos.config.system.autoUpgrade.dates` + `nix eval --json path:$PWD#nixosConfigurations.nixos.config.system.autoUpgrade.allowReboot`
+- Scenario "Auto-upgrade refreshes nixpkgs from the local flake path" -> `nix eval --raw path:$PWD#nixosConfigurations.nixos.config.system.autoUpgrade.flake` + `nix eval --json path:$PWD#nixosConfigurations.nixos.config.system.autoUpgrade.flags`
+
 Pin stateVersion to preserve migration semantics across upgrades.
 
 #+name: module-base-state-version
@@ -338,6 +383,8 @@ Verification mapping:
   <<module-base-unfree>>
 
   <<module-base-shell>>
+
+  <<module-base-auto-upgrade>>
 
   <<module-base-state-version>>
 }

@@ -16,5 +16,17 @@
   programs.fish.enable = true;
   users.defaultUserShell = pkgs.fish;
 
+  system.autoUpgrade = {
+    enable = true;
+    dates = "daily";
+    randomizedDelaySec = "45min";
+    flake = "/home/nixos/nixos";
+    flags = [
+      "--update-input"
+      "nixpkgs"
+    ];
+    allowReboot = false;
+  };
+
   system.stateVersion = "25.05";
 }
