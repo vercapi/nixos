@@ -25,6 +25,7 @@
 - After changing `config.org`, regenerate the Nix files with `./scripts/tangle-config.sh` before running validation/build commands.
 - `config.org` should follow literate-programming style: explain each section in prose, and document both technical wiring and functional/user-facing intent.
 - When applying a requested config change, preserve the request context in `config.org` prose near the affected chunks (what changed, why it changed, and the functional outcome), not only in code blocks.
+- When a request changes how configuration or document structure should be organized, add or update the corresponding rule in `.github/copilot-instructions.md` in the same change.
 - Every behavior-affecting snippet in `config.org` must include a nearby subheader tagged `:ACCEPTANCE_CRITERIA:` with `Given/When/Then` scenarios.
 - Heading classification labels (for example, functionality or acceptance criteria) must be represented as Org tags, not literal heading text prefixes.
 - Use uppercase Org tags only.
