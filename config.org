@@ -392,6 +392,15 @@ Reference the Copilot CLI package exported by the flake input.
 copilot-cli.packages.${pkgs.system}.default
 #+end_src
 
+*** Copilot language server package :FUNCTIONALITY:
+
+Per request, install the Copilot language server package for editor/LSP use.
+
+#+name: module-copilot-language-server
+#+begin_src nix :tangle no
+pkgs.copilot-language-server
+#+end_src
+
 Combine runtime and CLI package into the final package declaration.
 
 #+name: module-copilot-packages
@@ -399,6 +408,7 @@ Combine runtime and CLI package into the final package declaration.
 environment.systemPackages = [
   <<module-copilot-node-runtime>>
   <<module-copilot-cli-package>>
+  <<module-copilot-language-server>>
 ];
 #+end_src
 

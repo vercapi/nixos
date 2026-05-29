@@ -4,5 +4,6 @@
   environment.systemPackages = [
     pkgs.nodejs_24
     copilot-cli.packages.${pkgs.system}.default
+    pkgs.copilot-language-server
   ];
 }
