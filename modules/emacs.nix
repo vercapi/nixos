@@ -12,7 +12,7 @@
     hunspellDicts.en_US
     hunspellDicts.nl_nl
     libvterm
-    python3Full
+    python3
   ];
 
   fonts.packages = with pkgs; [

@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1777551333,
-        "narHash": "sha256-KT1gKH7jUUvHv3YT9F9VWkf1tI1cOsUkd0Ta/42FNB8=",
+        "lastModified": 1780013294,
+        "narHash": "sha256-jEm3K+WvnMCa/M2kuDKCR2fyEd3AdHG4lC+4VG9ZqNE=",
         "owner": "scarisey",
         "repo": "copilot-cli-flake",
-        "rev": "9c2c4795d8cd5b5b838791e9627e585bab2bb4c3",
+        "rev": "c9705876b5d77fbbf18362c501fc1966f32ebdaa",
         "type": "github"
       },
       "original": {
@@ -59,16 +59,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1767313136,
-        "narHash": "sha256-16KkgfdYqjaeRGBaYsNrhPRRENs0qzkQVUooNHtoy2w=",
+        "lastModified": 1779560665,
+        "narHash": "sha256-tpyBcxPpcQb8ukyNF7DoCwfSY3VPsxHoYwj00Cayv5o=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ac62194c3917d5f474c1a844b6fd6da2db95077d",
+        "rev": "64c08a7ca051951c8eae34e3e3cb1e202fe36786",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-25.05",
+        "ref": "nixos-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }

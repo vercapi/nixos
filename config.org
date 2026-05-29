@@ -35,9 +35,12 @@ description = "NixOS WSL configuration";
 We split each upstream input into its own chunk so each dependency can be read
 and changed independently.
 
+Per request, the main package set tracks the faster rolling =nixos-unstable=
+branch.
+
 #+name: flake-input-nixpkgs
 #+begin_src nix :tangle no
-nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 #+end_src
 
 #+name: flake-input-nixos-wsl
@@ -491,7 +494,7 @@ Provide Python runtime support used by editor tooling.
 
 #+name: module-emacs-pkg-python
 #+begin_src nix :tangle no
-python3Full
+python3
 #+end_src
 
 Assemble the full package list from those functional groups.
