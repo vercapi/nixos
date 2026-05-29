@@ -26,17 +26,12 @@
 - `config.org` should follow literate-programming style: explain each section in prose, and document both technical wiring and functional/user-facing intent.
 - When applying a requested config change, preserve the request context in `config.org` prose near the affected chunks (what changed, why it changed, and the functional outcome), not only in code blocks.
 - When a request changes how configuration or document structure should be organized, add or update the corresponding rule in `.github/copilot-instructions.md` in the same change.
-- Every behavior-affecting snippet in `config.org` must include a nearby subheader tagged `:ACCEPTANCE_CRITERIA:` with `Given/When/Then` scenarios.
+- Architecture decisions for this repository should be recorded in `config.org` as dedicated functional sections (with Org tag conventions), not as standalone ad hoc notes.
 - Heading classification labels (for example, functionality or acceptance criteria) must be represented as Org tags, not literal heading text prefixes.
 - Use uppercase Org tags only.
 - Keep Org headings in standard syntax; do not use `=` inline markup in heading text.
-- Do not add Gherkin to snippets that are only structural/tangling scaffolding (assembly wrappers, args-only snippets, and final `:tangle` weave blocks).
 - Pure assembly/tangling module headers must be tagged `:TANGLE:`.
-- Gherkin scenarios must focus on end-result system behavior (runtime/system-state outcomes), not on tangling steps or generated file inspection.
-- Gherkin scenarios may be multiple per snippet when behaviors are distinct; keep wording specific and testable.
-- Each snippet-level Gherkin section must include a concise verification mapping to executable checks so scenarios can be converted into generated tests.
-- When functional behavior changes, update the corresponding snippet-level Gherkin scenarios and verification mapping in the same change.
-- Treat snippet-level Gherkin acceptance criteria in `config.org` as the source for generated config verification tests.
+- Do not add Gherkin acceptance-criteria blocks or verification-mapping test scaffolding to `config.org` unless explicitly requested.
 - Split Babel chunks by functionality (small named chunks for inputs, package groups, toggles, etc.), and assemble outputs directly in the final `:tangle` blocks rather than through extra `*-file` wrapper chunks.
 - Keep generated file formatting script-driven: `./scripts/tangle-config.sh` includes post-processing cleanup; do not hand-format generated `.nix` files.
 - Keep the repo conceptually flake-first: place flake wiring in the Flake section of `config.org`, which tangles to `flake.nix`.

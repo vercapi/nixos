@@ -12,43 +12,6 @@ Functionally, this machine profile is organized around five outcomes:
 - Copilot CLI availability,
 - and an Emacs-first working environment.
 
-* Gherkin coverage model
-
-To keep acceptance criteria useful for generated tests, this document uses the
-following rule:
-- every **behavior-affecting snippet** gets a subheader near that snippet,
-  tagged with :ACCEPTANCE_CRITERIA:;
-- **structural or tangling-only snippets** do not get their own criteria.
-- heading classification labels (for example, "Functionality" and "Acceptance criteria") are expressed as Org tags, not as literal heading text, and all tags are uppercase.
-- pure assembly/tangling module headers are tagged with :TANGLE:.
-
-Behavior-affecting snippets covered with Gherkin in this document:
-- `flake-output-modules`
-- `host-imports`
-- `module-base-nix-features`
-- `module-base-unfree`
-- `module-base-shell`
-- `module-base-auto-upgrade`
-- `module-base-state-version`
-- `module-wsl-enable`
-- `module-wsl-default-user`
-- `module-development-vcs`
-- `module-copilot-node-runtime`
-- `module-copilot-cli-package`
-- `module-emacs-pkg-editor`
-- `module-emacs-pkg-build-tools`
-- `module-emacs-pkg-spellcheck`
-- `module-emacs-pkg-vterm`
-- `module-emacs-pkg-python`
-- `module-emacs-fonts`
-
-Structural/tangling-only snippets intentionally excluded from direct criteria:
-- flake assembly/meta snippets (`flake-description`, `flake-input-*`, `flake-inputs`,
-  `flake-output-special-args`, `flake-output-host`, `flake-outputs`)
-- module argument/assembly snippets (`module-*-args`, `module-*-body`,
-  `module-development-packages`, `module-copilot-packages`, `module-emacs-toolchain`)
-- final `:tangle` blocks that only weave code into generated files
-
 * dependency graph and system entrypoint :FLAKE:
 
 The flake has three responsibilities: declare repository intent, pin inputs, and
@@ -133,21 +96,6 @@ modules = [
 ];
 #+end_src
 
-**** for flake-output-modules :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Activated system includes capabilities from all selected modules
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I check core commands in a new shell session
-  Then "command -v fish" succeeds
-  And "command -v git" succeeds
-  And "command -v emacs" succeeds
-  And "command -v node" succeeds
-#+end_example
-
-Verification mapping:
-- Scenario "Activated system includes capabilities from all selected modules" -> `sudo nixos-rebuild test --flake .#nixos` + `command -v fish git emacs node`
-
 #+name: flake-output-host
 #+begin_src nix :tangle no
 nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
@@ -204,21 +152,6 @@ imports = [
 ];
 #+end_src
 
-*** for host-imports :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Host composition yields the expected workstation feature set
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I verify shell, development, Copilot, and editor tooling
-  Then "getent passwd \"$USER\" | cut -d: -f7 | grep -q fish" succeeds
-  And "command -v git" succeeds
-  And "command -v node" succeeds
-  And "command -v emacs" succeeds
-#+end_example
-
-Verification mapping:
-- Scenario "Host composition yields the expected workstation feature set" -> `sudo nixos-rebuild test --flake .#nixos` + runtime command checks
-
 #+begin_src nix :tangle hosts/nixos/default.nix
 {
   <<host-imports>>
@@ -229,8 +162,7 @@ Verification mapping:
 
 Each module is decomposed into functional headers tagged =:FUNCTIONALITY:=.
 Under each header, the literate explanation and its relevant code snippet are
-colocated, with Gherkin acceptance criteria in nested subheaders tagged
-=:ACCEPTANCE_CRITERIA:=.
+kept together so behavior and implementation stay easy to understand.
 
 ** system defaults :BASE_MODULE:
 
@@ -258,19 +190,6 @@ nix.settings.experimental-features = [
 ];
 #+end_src
 
-**** for module-base-nix-features :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Nix commands and flakes work without ad-hoc feature toggles
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I run "nix show-config | grep '^experimental-features ='"
-  Then the output includes "nix-command"
-  And the output includes "flakes"
-#+end_example
-
-Verification mapping:
-- Scenario "Nix commands and flakes work without ad-hoc feature toggles" -> `sudo nixos-rebuild test --flake .#nixos` + `nix show-config`
-
 *** unfree package policy :FUNCTIONALITY:
 
 Allow unfree packages globally for this machine profile.
@@ -279,18 +198,6 @@ Allow unfree packages globally for this machine profile.
 #+begin_src nix :tangle no
 nixpkgs.config.allowUnfree = true;
 #+end_src
-
-**** for module-base-unfree :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: System evaluation reports unfree packages as allowed
-  Given the host configuration is evaluable
-  When I run "nix eval --raw path:$PWD#nixosConfigurations.nixos.config.nixpkgs.config.allowUnfree"
-  Then the output equals "true"
-#+end_example
-
-Verification mapping:
-- Scenario "System evaluation reports unfree packages as allowed" -> `nix eval --raw path:$PWD#nixosConfigurations.nixos.config.nixpkgs.config.allowUnfree`
 
 *** default shell policy :FUNCTIONALITY:
 
@@ -309,20 +216,6 @@ environment.systemPackages = with pkgs; [
 programs.fish.enable = true;
 users.defaultUserShell = pkgs.fish;
 #+end_src
-
-**** for module-base-shell :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Fish is the default shell and Bash remains available
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I check shell state
-  Then "getent passwd \"$USER\" | cut -d: -f7 | grep -q fish" succeeds
-  And "command -v fish" succeeds
-  And "command -v bash" succeeds
-#+end_example
-
-Verification mapping:
-- Scenario "Fish is the default shell and Bash remains available" -> `sudo nixos-rebuild test --flake .#nixos` + shell/runtime checks
 
 *** automatic rolling-style upgrades :FUNCTIONALITY:
 
@@ -348,28 +241,6 @@ system.autoUpgrade = {
 };
 #+end_src
 
-**** for module-base-auto-upgrade :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Auto-upgrade is enabled on a daily schedule without forced reboot
-  Given the host configuration is evaluable
-  When I evaluate auto-upgrade settings
-  Then "system.autoUpgrade.enable" equals true
-  And "system.autoUpgrade.dates" equals "daily"
-  And "system.autoUpgrade.allowReboot" equals false
-
-Scenario: Auto-upgrade refreshes nixpkgs from the local flake path
-  Given the host configuration is evaluable
-  When I evaluate the auto-upgrade flake source and flags
-  Then "system.autoUpgrade.flake" equals "/home/nixos/nixos"
-  And "system.autoUpgrade.flags" includes "--update-input"
-  And "system.autoUpgrade.flags" includes "nixpkgs"
-#+end_example
-
-Verification mapping:
-- Scenario "Auto-upgrade is enabled on a daily schedule without forced reboot" -> `nix eval --json path:$PWD#nixosConfigurations.nixos.config.system.autoUpgrade.enable` + `nix eval --raw path:$PWD#nixosConfigurations.nixos.config.system.autoUpgrade.dates` + `nix eval --json path:$PWD#nixosConfigurations.nixos.config.system.autoUpgrade.allowReboot`
-- Scenario "Auto-upgrade refreshes nixpkgs from the local flake path" -> `nix eval --raw path:$PWD#nixosConfigurations.nixos.config.system.autoUpgrade.flake` + `nix eval --json path:$PWD#nixosConfigurations.nixos.config.system.autoUpgrade.flags`
-
 *** state version pin :FUNCTIONALITY:
 
 Pin stateVersion to preserve migration semantics across upgrades.
@@ -378,18 +249,6 @@ Pin stateVersion to preserve migration semantics across upgrades.
 #+begin_src nix :tangle no
 system.stateVersion = "25.05";
 #+end_src
-
-**** for module-base-state-version :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: State version remains pinned to the declared compatibility baseline
-  Given the host configuration is evaluable
-  When I run "nix eval --raw path:$PWD#nixosConfigurations.nixos.config.system.stateVersion"
-  Then the output equals "25.05"
-#+end_example
-
-Verification mapping:
-- Scenario "State version remains pinned to the declared compatibility baseline" -> `nix eval --raw path:$PWD#nixosConfigurations.nixos.config.system.stateVersion`
 
 *** Base module assembly :TANGLE:
 
@@ -430,18 +289,6 @@ Enable the WSL integration module itself.
 wsl.enable = true;
 #+end_src
 
-**** for module-wsl-enable :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: System evaluation confirms WSL mode is enabled
-  Given the host configuration is evaluable
-  When I run "nix eval --raw path:$PWD#nixosConfigurations.nixos.config.wsl.enable"
-  Then the output equals "true"
-#+end_example
-
-Verification mapping:
-- Scenario "System evaluation confirms WSL mode is enabled" -> `nix eval --raw path:$PWD#nixosConfigurations.nixos.config.wsl.enable`
-
 *** WSL default user :FUNCTIONALITY:
 
 Define the login account to use inside the WSL environment.
@@ -450,18 +297,6 @@ Define the login account to use inside the WSL environment.
 #+begin_src nix :tangle no
 wsl.defaultUser = "nixos";
 #+end_src
-
-**** for module-wsl-default-user :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: WSL login default user is the configured account
-  Given the host configuration is evaluable
-  When I run "nix eval --raw path:$PWD#nixosConfigurations.nixos.config.wsl.defaultUser"
-  Then the output equals "nixos"
-#+end_example
-
-Verification mapping:
-- Scenario "WSL login default user is the configured account" -> `nix eval --raw path:$PWD#nixosConfigurations.nixos.config.wsl.defaultUser`
 
 *** WSL module assembly :TANGLE:
 
@@ -500,18 +335,6 @@ Start with version-control tooling as the baseline developer dependency.
 #+begin_src nix :tangle no
 git
 #+end_src
-
-**** for module-development-vcs :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Git is available for baseline development workflows
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I run "command -v git"
-  Then the command exits successfully
-#+end_example
-
-Verification mapping:
-- Scenario "Git is available for baseline development workflows" -> `sudo nixos-rebuild test --flake .#nixos` + `command -v git`
 
 Compose the system package set from the functional package groups.
 
@@ -560,18 +383,6 @@ Pin the Node runtime used by the CLI package.
 pkgs.nodejs_24
 #+end_src
 
-**** for module-copilot-node-runtime :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Node.js runtime required by Copilot CLI is available
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I run "command -v node"
-  Then the command exits successfully
-#+end_example
-
-Verification mapping:
-- Scenario "Node.js runtime required by Copilot CLI is available" -> `sudo nixos-rebuild test --flake .#nixos` + `command -v node`
-
 *** Copilot CLI package source :FUNCTIONALITY:
 
 Reference the Copilot CLI package exported by the flake input.
@@ -580,18 +391,6 @@ Reference the Copilot CLI package exported by the flake input.
 #+begin_src nix :tangle no
 copilot-cli.packages.${pkgs.system}.default
 #+end_src
-
-**** for module-copilot-cli-package :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Copilot CLI command is available in the activated profile
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I run "command -v copilot || command -v github-copilot-cli"
-  Then the command exits successfully
-#+end_example
-
-Verification mapping:
-- Scenario "Copilot CLI command is available in the activated profile" -> `sudo nixos-rebuild test --flake .#nixos` + `command -v copilot || command -v github-copilot-cli`
 
 Combine runtime and CLI package into the final package declaration.
 
@@ -643,18 +442,6 @@ Declare the editor package itself.
 emacs
 #+end_src
 
-**** for module-emacs-pkg-editor :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Emacs executable is available for the editor workflow
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I run "command -v emacs"
-  Then the command exits successfully
-#+end_example
-
-Verification mapping:
-- Scenario "Emacs executable is available for the editor workflow" -> `sudo nixos-rebuild test --flake .#nixos` + `command -v emacs`
-
 *** native build toolchain :FUNCTIONALITY:
 
 Provide native build tools commonly required by Emacs packages with compiled components.
@@ -668,18 +455,6 @@ gnumake
 pkg-config
 #+end_src
 
-**** for module-emacs-pkg-build-tools :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Native build tools needed by Emacs packages are available
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I run "command -v cmake gcc libtool make pkg-config"
-  Then the command exits successfully
-#+end_example
-
-Verification mapping:
-- Scenario "Native build tools needed by Emacs packages are available" -> `sudo nixos-rebuild test --flake .#nixos` + `command -v cmake gcc libtool make pkg-config`
-
 *** spell-check tooling :FUNCTIONALITY:
 
 Add spell-check tooling and dictionaries for writing/editing workflows.
@@ -691,19 +466,6 @@ hunspellDicts.en_US
 hunspellDicts.nl_nl
 #+end_src
 
-**** for module-emacs-pkg-spellcheck :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Spell-check tooling is available for writing workflows
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I run "command -v hunspell"
-  Then the command exits successfully
-  And running "hunspell -D" reports available dictionaries
-#+end_example
-
-Verification mapping:
-- Scenario "Spell-check tooling is available for writing workflows" -> `sudo nixos-rebuild test --flake .#nixos` + `command -v hunspell` + `hunspell -D`
-
 *** vterm native dependency :FUNCTIONALITY:
 
 Include terminal integration support for Emacs =vterm=.
@@ -713,18 +475,6 @@ Include terminal integration support for Emacs =vterm=.
 libvterm
 #+end_src
 
-**** for module-emacs-pkg-vterm :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Native vterm dependency can be resolved by build tooling
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I run "pkg-config --exists vterm"
-  Then the command exits successfully
-#+end_example
-
-Verification mapping:
-- Scenario "Native vterm dependency can be resolved by build tooling" -> `sudo nixos-rebuild test --flake .#nixos` + `pkg-config --exists vterm`
-
 *** Python runtime for integrations :FUNCTIONALITY:
 
 Provide Python runtime support used by editor tooling.
@@ -733,18 +483,6 @@ Provide Python runtime support used by editor tooling.
 #+begin_src nix :tangle no
 python3Full
 #+end_src
-
-**** for module-emacs-pkg-python :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Python runtime is available for editor integrations
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I run "command -v python3"
-  Then the command exits successfully
-#+end_example
-
-Verification mapping:
-- Scenario "Python runtime is available for editor integrations" -> `sudo nixos-rebuild test --flake .#nixos` + `command -v python3`
 
 Assemble the full package list from those functional groups.
 
@@ -773,18 +511,6 @@ fonts.packages = with pkgs; [
   proggyfonts
 ];
 #+end_src
-
-**** for module-emacs-fonts :ACCEPTANCE_CRITERIA:
-
-#+begin_example
-Scenario: Proggy font family is installed for terminal/editor readability
-  Given I run "sudo nixos-rebuild test --flake .#nixos"
-  When I run "fc-list | grep -i proggy"
-  Then the command exits successfully
-#+end_example
-
-Verification mapping:
-- Scenario "Proggy font family is installed for terminal/editor readability" -> `sudo nixos-rebuild test --flake .#nixos` + `fc-list | grep -i proggy`
 
 *** Emacs module assembly :TANGLE:
 
