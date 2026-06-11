@@ -365,10 +365,11 @@ environment.systemPackages = with pkgs; [
 
 ** CLI integration :COPILOT_MODULE:
 
-This module wires the Copilot CLI flake package and the Node runtime it needs.
+This module wires the Copilot CLI flake package, its Node runtime, and
+adjacent AI-development tooling.
 
-Functionally, this makes Copilot CLI consistently available on the system with
-its runtime requirements satisfied by the same declarative configuration.
+Functionally, this keeps Copilot and AI-agent evaluation workflows together in
+one declarative module.
 
 *** Copilot module arguments
 
@@ -392,7 +393,7 @@ Reference the Copilot CLI package exported by the flake input.
 
 #+name: module-copilot-cli-package
 #+begin_src nix :tangle no
-copilot-cli.packages.${pkgs.system}.default
+copilot-cli.packages.${pkgs.stdenv.hostPlatform.system}.default
 #+end_src
 
 *** Copilot language server package :FUNCTIONALITY:
@@ -404,6 +405,63 @@ Per request, install the Copilot language server package for editor/LSP use.
 pkgs.copilot-language-server
 #+end_src
 
+*** waza AI evaluation CLI :FUNCTIONALITY:
+
+Install =waza= alongside Copilot tooling so AI development and evaluation
+commands are co-located functionally.
+
+This package uses existing =nixpkgs= fetch/build primitives and consumes the
+upstream release binaries because =waza= is not currently available directly in
+the pinned =nixpkgs= set.
+
+#+name: module-copilot-waza
+#+begin_src nix :tangle no
+(let
+  version = "0.33.0";
+  assets = {
+    x86_64-linux = {
+      file = "microsoft-azd-waza-linux-amd64.tar.gz";
+      hash = "sha256-KAYS1N6stW8QjFi8BlEDzONbD30RdZh+B+6hjtoo/+U=";
+      binary = "microsoft-azd-waza-linux-amd64";
+    };
+    aarch64-linux = {
+      file = "microsoft-azd-waza-linux-arm64.tar.gz";
+      hash = "sha256-V56UW6wH9SkqSdZ6/4Cw89Tt8/n9Ij4g5U9QGn/f1lQ=";
+      binary = "microsoft-azd-waza-linux-arm64";
+    };
+  };
+  asset =
+    assets.${pkgs.stdenv.hostPlatform.system}
+      or (throw "waza is only packaged for x86_64-linux and aarch64-linux");
+in
+pkgs.stdenvNoCC.mkDerivation {
+  pname = "waza";
+  inherit version;
+  src = pkgs.fetchurl {
+    url = "https://github.com/microsoft/waza/releases/download/azd-ext-microsoft-azd-waza_${version}/${asset.file}";
+    hash = asset.hash;
+  };
+
+  sourceRoot = ".";
+  installPhase = ''
+    runHook preInstall
+    install -Dm755 "${asset.binary}" "$out/bin/waza"
+    runHook postInstall
+  '';
+
+  meta = with pkgs.lib; {
+    description = "CLI for evaluating AI agent skills";
+    homepage = "https://github.com/microsoft/waza";
+    license = licenses.mit;
+    mainProgram = "waza";
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+  };
+})
+#+end_src
+
 Combine runtime and CLI package into the final package declaration.
 
 #+name: module-copilot-packages
@@ -412,6 +470,7 @@ environment.systemPackages = [
   <<module-copilot-node-runtime>>
   <<module-copilot-cli-package>>
   <<module-copilot-language-server>>
+  <<module-copilot-waza>>
 ];
 #+end_src
 
