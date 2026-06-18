@@ -13,6 +13,7 @@
     hunspellDicts.nl_nl
     libvterm
     python3
+    pandoc
   ];
 
   fonts.packages = with pkgs; [

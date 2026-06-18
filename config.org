@@ -492,11 +492,12 @@ environment.systemPackages = [
 ** editor support stack :EMACS_MODULE:
 
 This module carries the editor plus native dependencies needed by an Emacs-first
-development workflow, including =vterm= support, dictionaries, and fonts.
+development workflow, including =vterm= support, dictionaries, document
+conversion tooling, and fonts.
 
 Functionally, this section optimizes the machine for an Emacs-centric workflow:
-editing, terminal use, spell-checking, and language-tool integration all work
-out of the box after activation.
+editing, terminal use, spell-checking, document export and preview flows, and
+language-tool integration all work out of the box after activation.
 
 *** Emacs module arguments
 
@@ -556,6 +557,16 @@ Provide Python runtime support used by editor tooling.
 python3
 #+end_src
 
+*** document conversion tooling :FUNCTIONALITY:
+
+Provide =pandoc= for Emacs workflows that export or transform Markdown, Org,
+and other document formats without requiring per-project installation.
+
+#+name: module-emacs-pkg-docs
+#+begin_src nix :tangle no
+pandoc
+#+end_src
+
 Assemble the full package list from those functional groups.
 
 #+name: module-emacs-toolchain
@@ -570,6 +581,8 @@ environment.systemPackages = with pkgs; [
   <<module-emacs-pkg-vterm>>
 
   <<module-emacs-pkg-python>>
+
+  <<module-emacs-pkg-docs>>
 ];
 #+end_src
 
