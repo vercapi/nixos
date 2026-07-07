@@ -7,6 +7,7 @@
 - `nix --extra-experimental-features 'nix-command flakes' build --no-link path:$PWD#nixosConfigurations.nixos.config.system.build.toplevel` — build the configured system without switching to it.
 - `sudo nixos-rebuild test --flake .#nixos` — build and activate temporarily for end-to-end validation.
 - `sudo nixos-rebuild switch --flake .#nixos` — apply the configuration after review.
+- When local validation or rebuild work depends on newly generated or otherwise untracked files, prefer `path:$PWD#...` flake targets over `.#...` so Nix evaluates the full working tree instead of only tracked Git content.
 - There is no repo-local lint script or unit/integration test runner. There is also no single-test entry point; validation is whole-system, so use `nix flake show` for fast evaluation and `nix build`/`nixos-rebuild` for full verification.
 
 ## High-level architecture
@@ -23,6 +24,8 @@
 - `config.org` is the single source of truth for system configuration. Make all configuration changes in `config.org` only.
 - Never edit `flake.nix`, `hosts/**/*.nix`, or `modules/*.nix` directly; those files are generated via tangling from `config.org`.
 - After changing `config.org`, regenerate the Nix files with `./scripts/tangle-config.sh` before running validation/build commands.
+- Prefer packages from the pinned `nixpkgs` set before adding a new flake input or custom packaging.
+- Avoid git write actions by default unless the user explicitly asks for them.
 - `config.org` should follow literate-programming style: explain each section in prose, and document both technical wiring and functional/user-facing intent.
 - When applying a requested config change, preserve the request context in `config.org` prose near the affected chunks (what changed, why it changed, and the functional outcome), not only in code blocks.
 - When a request changes how configuration or document structure should be organized, add or update the corresponding rule in `.github/copilot-instructions.md` in the same change.
