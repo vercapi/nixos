@@ -148,7 +148,7 @@ activated for the host.
 #+begin_src nix :tangle no
 imports = [
   ../../modules/base.nix
-  ../../modules/copilot.nix
+  ../../modules/ai-coding.nix
   ../../modules/development.nix
   ../../modules/emacs.nix
   ../../modules/wsl.nix
@@ -363,17 +363,18 @@ environment.systemPackages = with pkgs; [
 <<module-development-body>>
 #+end_src
 
-** CLI integration :COPILOT_MODULE:
+** AI coding CLI integration :AI_CODING_MODULE:
 
-This module wires the Copilot CLI flake package, its Node runtime, and
-adjacent AI-development tooling.
+This module wires the Copilot CLI flake package, Claude Code from =nixpkgs=,
+the shared Node runtime used by the CLI stack, and adjacent AI-development
+tooling.
 
-Functionally, this keeps Copilot and AI-agent evaluation workflows together in
+Functionally, this keeps AI coding and AI-agent evaluation workflows together in
 one declarative module.
 
-*** Copilot module arguments
+*** AI coding module arguments
 
-#+name: module-copilot-args
+#+name: module-ai-coding-args
 #+begin_src nix :tangle no
 { pkgs, copilot-cli, ... }:
 #+end_src
@@ -382,7 +383,7 @@ one declarative module.
 
 Pin the Node runtime used by the CLI package.
 
-#+name: module-copilot-node-runtime
+#+name: module-ai-coding-node-runtime
 #+begin_src nix :tangle no
 pkgs.nodejs_24
 #+end_src
@@ -391,7 +392,7 @@ pkgs.nodejs_24
 
 Reference the Copilot CLI package exported by the flake input.
 
-#+name: module-copilot-cli-package
+#+name: module-ai-coding-cli-package
 #+begin_src nix :tangle no
 copilot-cli.packages.${pkgs.stdenv.hostPlatform.system}.default
 #+end_src
@@ -400,21 +401,31 @@ copilot-cli.packages.${pkgs.stdenv.hostPlatform.system}.default
 
 Per request, install the Copilot language server package for editor/LSP use.
 
-#+name: module-copilot-language-server
+#+name: module-ai-coding-language-server
 #+begin_src nix :tangle no
 pkgs.copilot-language-server
 #+end_src
 
+*** Claude Code package :FUNCTIONALITY:
+
+Per request, install =claude-code= from the pinned =nixpkgs= set so the CLI is
+available machine-wide without introducing another flake input.
+
+#+name: module-ai-coding-claude-code
+#+begin_src nix :tangle no
+pkgs.claude-code
+#+end_src
+
 *** waza AI evaluation CLI :FUNCTIONALITY:
 
-Install =waza= alongside Copilot tooling so AI development and evaluation
-commands are co-located functionally.
+Install =waza= alongside Copilot, Claude Code, and adjacent AI tooling so
+development and evaluation commands are co-located functionally.
 
 This package uses existing =nixpkgs= fetch/build primitives and consumes the
 upstream release binaries because =waza= is not currently available directly in
 the pinned =nixpkgs= set.
 
-#+name: module-copilot-waza
+#+name: module-ai-coding-waza
 #+begin_src nix :tangle no
 (let
   version = "0.33.0";
@@ -462,31 +473,33 @@ pkgs.stdenvNoCC.mkDerivation {
 })
 #+end_src
 
-Combine runtime and CLI package into the final package declaration.
+Combine the AI coding runtime and CLI packages into the final package
+declaration.
 
-#+name: module-copilot-packages
+#+name: module-ai-coding-packages
 #+begin_src nix :tangle no
 environment.systemPackages = [
-  <<module-copilot-node-runtime>>
-  <<module-copilot-cli-package>>
-  <<module-copilot-language-server>>
-  <<module-copilot-waza>>
+  <<module-ai-coding-node-runtime>>
+  <<module-ai-coding-cli-package>>
+  <<module-ai-coding-language-server>>
+  <<module-ai-coding-claude-code>>
+  <<module-ai-coding-waza>>
 ];
 #+end_src
 
-*** Copilot module assembly :TANGLE:
+*** AI coding module assembly :TANGLE:
 
-#+name: module-copilot-body
+#+name: module-ai-coding-body
 #+begin_src nix :tangle no
 {
-  <<module-copilot-packages>>
+  <<module-ai-coding-packages>>
 }
 #+end_src
 
-#+begin_src nix :tangle modules/copilot.nix
-<<module-copilot-args>>
+#+begin_src nix :tangle modules/ai-coding.nix
+<<module-ai-coding-args>>
 
-<<module-copilot-body>>
+<<module-ai-coding-body>>
 #+end_src
 
 ** editor support stack :EMACS_MODULE:

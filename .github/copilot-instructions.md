@@ -14,8 +14,8 @@
 - `flake.nix` is the repo entrypoint. It pins `nixpkgs`, `nixos-wsl`, and `copilot-cli`, then exposes a single host at `nixosConfigurations.nixos`.
 - The flake builds the system with `nixpkgs.lib.nixosSystem` and imports the upstream WSL module from `nixos-wsl.nixosModules.default`.
 - `hosts/nixos/default.nix` is the host entrypoint. It assembles the system from focused modules instead of defining everything inline.
-- The reusable settings live under `modules/` and are grouped by function: `base.nix`, `wsl.nix`, `development.nix`, `copilot.nix`, and `emacs.nix`.
-- `modules/copilot.nix` consumes the Copilot CLI from the flake input via `copilot-cli.packages.${pkgs.stdenv.hostPlatform.system}.default` rather than rebuilding it from an inline fetch.
+- The reusable settings live under `modules/` and are grouped by function: `base.nix`, `wsl.nix`, `development.nix`, `ai-coding.nix`, and `emacs.nix`.
+- `modules/ai-coding.nix` consumes the Copilot CLI from the flake input via `copilot-cli.packages.${pkgs.stdenv.hostPlatform.system}.default` and groups AI coding CLIs, including Claude Code, in one functional module.
 - `modules/emacs.nix` is intentionally broader than just the editor package: it also carries the native dependencies needed for Emacs-managed `vterm`, plus Python, dictionaries, and fonts used for that workflow.
 
 ## Key conventions
@@ -35,9 +35,9 @@
 - Split Babel chunks by functionality (small named chunks for inputs, package groups, toggles, etc.), and assemble outputs directly in the final `:tangle` blocks rather than through extra `*-file` wrapper chunks.
 - Keep generated file formatting script-driven: `./scripts/tangle-config.sh` includes post-processing cleanup; do not hand-format generated `.nix` files.
 - Keep the repo conceptually flake-first: place flake wiring in the Flake section of `config.org`, which tangles to `flake.nix`.
-- Group modules by user-facing function rather than by option type. Extend `development.nix`, `copilot.nix`, or `emacs.nix` before creating technical slices like `packages.nix` or `fonts.nix`.
+- Group modules by user-facing function rather than by option type. Extend `development.nix`, `ai-coding.nix`, or `emacs.nix` before creating technical slices like `packages.nix` or `fonts.nix`.
 - Add packages to the functional module they support. Prefer consuming flake inputs directly from `packages.${pkgs.system}` when an upstream flake already exposes the package.
-- Keep AI development and evaluation CLIs (for example, `waza`) in the Copilot module so Copilot-adjacent workflows stay functionally grouped.
+- Keep AI development and evaluation CLIs (for example, `waza` and `claude-code`) in the AI coding module so AI tooling stays functionally grouped.
 - Emacs packages themselves are expected to be managed inside Emacs; `modules/emacs.nix` should provide editor support tooling and native dependencies rather than Nix-managed Emacs extensions unless explicitly requested.
 - Keep WSL-specific behavior in `modules/wsl.nix` rather than mixing it into package or shell modules.
 - Keep host composition in the Host section of `config.org` (tangled to `hosts/nixos/default.nix`); add new focused modules instead of growing one large host file.

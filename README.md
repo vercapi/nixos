@@ -21,5 +21,5 @@ Edit flow: update `config.org`, run `./scripts/tangle-config.sh`, then run the N
 - `modules/base.nix` contains shared system defaults like Nix settings, unfree allowance, shell defaults, and `system.stateVersion`
 - `modules/wsl.nix` contains WSL-specific behavior
 - `modules/development.nix` contains general development tooling
-- `modules/copilot.nix` contains Copilot-specific tooling and its Node.js runtime
+- `modules/ai-coding.nix` contains AI coding tooling, including Copilot, Claude Code, the shared Node.js runtime, and adjacent AI CLI support
 - `modules/emacs.nix` contains the Emacs-centric toolchain, including the native dependencies needed for Emacs-managed `vterm`, dictionaries, Python, and fonts

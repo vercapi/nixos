@@ -1,7 +1,7 @@
 {
   imports = [
     ../../modules/base.nix
-    ../../modules/copilot.nix
+    ../../modules/ai-coding.nix
     ../../modules/development.nix
     ../../modules/emacs.nix
     ../../modules/wsl.nix

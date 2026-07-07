@@ -5,6 +5,7 @@
     pkgs.nodejs_24
     copilot-cli.packages.${pkgs.stdenv.hostPlatform.system}.default
     pkgs.copilot-language-server
+    pkgs.claude-code
     (let
       version = "0.33.0";
       assets = {
