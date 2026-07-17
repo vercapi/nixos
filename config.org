@@ -209,6 +209,10 @@ Define the default shell policy for the machine.
 Per request, Fish is the primary login shell, while Bash remains installed as a
 stable fallback shell.
 
+=~/.local/bin= is added to =PATH= system-wide via =environment.localBinInPath=
+so that user-installed tools (for example, pip-installed scripts or manually
+placed binaries) are reachable in any shell without manual config.fish edits.
+
 #+name: module-base-shell
 #+begin_src nix :tangle no
 environment.systemPackages = with pkgs; [
@@ -218,6 +222,8 @@ environment.systemPackages = with pkgs; [
 
 programs.fish.enable = true;
 users.defaultUserShell = pkgs.fish;
+
+environment.localBinInPath = true;
 #+end_src
 
 *** automatic rolling-style upgrades :FUNCTIONALITY:

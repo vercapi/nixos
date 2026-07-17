@@ -16,6 +16,8 @@
   programs.fish.enable = true;
   users.defaultUserShell = pkgs.fish;
 
+  environment.localBinInPath = true;
+
   system.autoUpgrade = {
     enable = true;
     dates = "daily";
