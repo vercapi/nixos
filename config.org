@@ -422,6 +422,47 @@ available machine-wide without introducing another flake input.
 pkgs.claude-code
 #+end_src
 
+*** Claude Code settings management :FUNCTIONALITY:
+
+Declaratively write =~/.claude/settings.json= during system activation so
+theme, model, and MCP server preferences are version-controlled alongside the
+system configuration. The file is copied (not symlinked) so Claude Code can
+still write back transient state between rebuilds; the declared settings win on
+=nixos-rebuild switch=.
+
+=builtins.toJSON= converts the Nix attribute set to JSON at evaluation time,
+keeping the declaration in a single structured form rather than an embedded
+string.
+
+#+name: module-ai-coding-claude-settings
+#+begin_src nix :tangle no
+system.activationScripts.claudeCodeSettings =
+  let
+    settings = pkgs.writeText "claude-settings.json" (builtins.toJSON {
+      theme = "auto";
+      model = "opus[1m]";
+      mcpServers = {
+        emacs = {
+          type = "stdio";
+          command = "socat";
+          args = [
+            "-"
+            "UNIX-CONNECT:/home/nixos/.emacs.d/emacs-mcp-server.sock"
+          ];
+          env = { };
+        };
+      };
+    });
+  in
+  {
+    text = ''
+      mkdir -p /home/nixos/.claude
+      cp ${settings} /home/nixos/.claude/settings.json
+      chown nixos:nixos /home/nixos/.claude/settings.json
+    '';
+  };
+#+end_src
+
 *** waza AI evaluation CLI :FUNCTIONALITY:
 
 Install =waza= alongside Copilot, Claude Code, and adjacent AI tooling so
@@ -479,6 +520,17 @@ pkgs.stdenvNoCC.mkDerivation {
 })
 #+end_src
 
+*** Emacs MCP bridge dependency :FUNCTIONALITY:
+
+The Emacs MCP server exposes a Unix socket; =socat= bridges that socket to
+Claude Code's stdio transport so the =emacs= MCP server defined in the Claude
+settings works correctly.
+
+#+name: module-ai-coding-socat
+#+begin_src nix :tangle no
+pkgs.socat
+#+end_src
+
 Combine the AI coding runtime and CLI packages into the final package
 declaration.
 
@@ -490,6 +542,7 @@ environment.systemPackages = [
   <<module-ai-coding-language-server>>
   <<module-ai-coding-claude-code>>
   <<module-ai-coding-waza>>
+  <<module-ai-coding-socat>>
 ];
 #+end_src
 
@@ -499,6 +552,7 @@ environment.systemPackages = [
 #+begin_src nix :tangle no
 {
   <<module-ai-coding-packages>>
+  <<module-ai-coding-claude-settings>>
 }
 #+end_src
 

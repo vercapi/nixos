@@ -48,5 +48,31 @@
         ];
       };
     })
+    pkgs.socat
   ];
+  system.activationScripts.claudeCodeSettings =
+    let
+      settings = pkgs.writeText "claude-settings.json" (builtins.toJSON {
+        theme = "auto";
+        model = "opus[1m]";
+        mcpServers = {
+          emacs = {
+            type = "stdio";
+            command = "socat";
+            args = [
+              "-"
+              "UNIX-CONNECT:/home/nixos/.emacs.d/emacs-mcp-server.sock"
+            ];
+            env = { };
+          };
+        };
+      });
+    in
+    {
+      text = ''
+        mkdir -p /home/nixos/.claude
+        cp ${settings} /home/nixos/.claude/settings.json
+        chown nixos:nixos /home/nixos/.claude/settings.json
+      '';
+    };
 }
